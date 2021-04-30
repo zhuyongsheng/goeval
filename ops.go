@@ -6,6 +6,30 @@ import (
 	"reflect"
 )
 
+var opNames = map[token.Token]string{
+	token.ADD:     `+`,
+	token.SUB:     `-`,
+	token.MUL:     `*`,
+	token.QUO:     `/`,
+	token.REM:     `%`,
+	token.AND:     `&`,
+	token.OR:      `|`,
+	token.XOR:     `^`,
+	token.SHL:     `<<`,
+	token.SHR:     `>> `,
+	token.AND_NOT: `&^`,
+	token.LAND:    `&&`,
+	token.LOR:     `||`,
+	token.INC:     `++`,
+	token.EQL:     `==`,
+	token.LSS:     `<`,
+	token.GTR:     `>`,
+	token.NOT:     `!`,
+	token.NEQ:     `!=`,
+	token.LEQ:     `<=`,
+	token.GEQ:     `>=`,
+}
+
 // ComputeBinaryOp executes the corresponding binary operation (+, -, etc) on two interfaces.
 func ComputeBinaryOp(xI, yI interface{}, op token.Token) (interface{}, error) {
 	typeX := reflect.TypeOf(xI)
@@ -580,7 +604,7 @@ func ComputeBinaryOp(xI, yI interface{}, op token.Token) (interface{}, error) {
 	case token.NEQ:
 		return xI != yI, nil
 	}
-	return nil, fmt.Errorf("unknown operation %#v between %#v and %#v", op, xI, yI)
+	return nil, fmt.Errorf("unknown operation %#v between %#v and %#v", getOpName(op), xI, yI)
 }
 
 // ComputeUnaryOp computes the corresponding unary (+x, -x) operation on an interface.
@@ -713,5 +737,12 @@ func ComputeUnaryOp(xI interface{}, op token.Token) (interface{}, error) {
 			return -x, nil
 		}
 	}
-	return nil, fmt.Errorf("unknown unary operation %#v on %#v", op, xI)
+	return nil, fmt.Errorf("unknown unary operation %#v on %#v", getOpName(op), xI)
+}
+
+func getOpName(op token.Token) string {
+	if name, ok := opNames[op]; ok {
+		return name
+	}
+	return fmt.Sprintf("%#v", op)
 }
