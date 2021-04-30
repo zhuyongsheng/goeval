@@ -1,6 +1,7 @@
 package goeval
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"go/ast"
@@ -44,6 +45,14 @@ func (s *Scope) Get(name string) (val interface{}) {
 		currentScope = currentScope.Parent
 	}
 	return
+}
+
+func (s *Scope) GetJsonString(name string) (val string) {
+	b, err := json.Marshal(s.Get(name))
+	if err != nil {
+		return "null"
+	}
+	return string(b)
 }
 
 // Set walks the scope and sets a value in a parent scope if it exists, else current.
