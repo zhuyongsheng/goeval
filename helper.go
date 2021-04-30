@@ -7,10 +7,10 @@ import (
 )
 
 // Append is a runtime replacement for the append function
-func Append(arr interface{}, elems ...interface{}) (interface{}, error) {
+func Append(arr interface{}, elements ...interface{}) (interface{}, error) {
 	arrVal := reflect.ValueOf(arr)
-	valArr := make([]reflect.Value, len(elems))
-	for i, elem := range elems {
+	valArr := make([]reflect.Value, len(elements))
+	for i, elem := range elements {
 		if reflect.TypeOf(arr) != reflect.SliceOf(reflect.TypeOf(elem)) {
 			return nil, fmt.Errorf("%T cannot append to %T", elem, arr)
 		}
@@ -28,7 +28,7 @@ func Make(t interface{}, args ...interface{}) (interface{}, error) {
 	switch typ.Kind() {
 	case reflect.Slice:
 		if len(args) < 1 || len(args) > 2 {
-			return nil, errors.New("invalid number of arguments. Missing len or extra?")
+			return nil, errors.New("invalid number of arguments, missing len or extra")
 		}
 		length, isInt := args[0].(int)
 		if !isInt {

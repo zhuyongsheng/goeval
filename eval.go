@@ -3,7 +3,6 @@ package goeval
 import (
 	"errors"
 	"fmt"
-	//	"github.com/davecgh/go-spew/spew"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -24,62 +23,62 @@ var (
 
 // variable scope, recursive definition
 type Scope struct {
-	Vals   map[string]interface{} // all variables in current scope
+	Vars   map[string]interface{} // all variables in current scope
 	Parent *Scope
 }
 
 // create a new variable scope
 func NewScope() *Scope {
 	s := &Scope{
-		Vals: map[string]interface{}{},
+		Vars: map[string]interface{}{},
 	}
 	return s
 }
 
 // search variable from inner-most scope
-func (scope *Scope) Get(name string) (val interface{}) {
-	currentScope := scope
+func (s *Scope) Get(name string) (val interface{}) {
+	currentScope := s
 	exists := false
 	for !exists && currentScope != nil {
-		val, exists = currentScope.Vals[name]
+		val, exists = currentScope.Vars[name]
 		currentScope = currentScope.Parent
 	}
 	return
 }
 
 // Set walks the scope and sets a value in a parent scope if it exists, else current.
-func (scope *Scope) Set(name string, val interface{}) {
+func (s *Scope) Set(name string, val interface{}) {
 	exists := false
-	currentScope := scope
+	currentScope := s
 	for !exists && currentScope != nil {
-		_, exists = currentScope.Vals[name]
+		_, exists = currentScope.Vars[name]
 		if exists {
-			currentScope.Vals[name] = val
+			currentScope.Vars[name] = val
 		}
 		currentScope = currentScope.Parent
 	}
 	if !exists {
-		scope.Vals[name] = val
+		s.Vars[name] = val
 	}
 }
 
 // Keys returns all keys in scope
-func (scope *Scope) Keys() (keys []string) {
-	currentScope := scope
+func (s *Scope) Keys() (keys []string) {
+	currentScope := s
 	for currentScope != nil {
-		for k := range currentScope.Vals {
+		for k := range currentScope.Vars {
 			keys = append(keys, k)
 		}
-		currentScope = scope.Parent
+		currentScope = s.Parent
 	}
 	return
 }
 
 // NewChild creates a scope under the existing scope.
-func (scope *Scope) NewChild() *Scope {
-	s := NewScope()
-	s.Parent = scope
-	return s
+func (s *Scope) NewChild() *Scope {
+	child := NewScope()
+	child.Parent = s
+	return child
 }
 
 // Eval evaluates a string
@@ -92,7 +91,7 @@ func (s *Scope) Eval(str string) (interface{}, error) {
 }
 
 // Interpret interprets an ast.Node and returns the value.
-func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
+func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 	switch e := expr.(type) {
 	case *ast.Ident: // An Ident node represents an identifier.
 		typ, err := StringToType(e.Name)
@@ -104,13 +103,13 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 			return obj, nil
 		}
 
-		if obj := scope.Get(e.Name); obj != nil {
+		if obj := s.Get(e.Name); obj != nil {
 			return obj, nil
 		}
 		return nil, fmt.Errorf("can't find EXPR %s", e.Name)
 
 	case *ast.SelectorExpr: // A SelectorExpr node represents an expression followed by a selector.
-		X, err := scope.Interpret(e.X)
+		X, err := s.Interpret(e.X)
 		if err != nil {
 			return nil, err
 		}
@@ -133,7 +132,7 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		return nil, fmt.Errorf("unknown field %#v", sel.Name)
 
 	case *ast.CallExpr:
-		fun, err := scope.Interpret(e.Fun)
+		fun, err := s.Interpret(e.Fun)
 		if err != nil {
 			return nil, err
 		}
@@ -141,13 +140,13 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		// make sure fun is a function
 		rf := reflect.ValueOf(fun)
 		if rf.Kind() != reflect.Func {
-			return nil, fmt.Errorf("Not a function %#v", fun)
+			return nil, fmt.Errorf("not a function %#v", fun)
 		}
 
 		// interpret args
 		args := make([]reflect.Value, len(e.Args))
 		for i, arg := range e.Args {
-			interpretedArg, err := scope.Interpret(arg)
+			interpretedArg, err := s.Interpret(arg)
 			if err != nil {
 				return nil, err
 			}
@@ -180,7 +179,7 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		}
 
 	case *ast.CompositeLit:
-		typ, err := scope.Interpret(e.Type)
+		typ, err := s.Interpret(e.Type)
 		if err != nil {
 			return nil, err
 		}
@@ -190,7 +189,7 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 			l := len(e.Elts)
 			slice := reflect.MakeSlice(typ.(reflect.Type), l, l)
 			for i, elem := range e.Elts {
-				elemValue, err := scope.Interpret(elem)
+				elemValue, err := s.Interpret(elem)
 				if err != nil {
 					return nil, err
 				}
@@ -203,11 +202,11 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 			for _, elem := range e.Elts {
 				switch eT := elem.(type) {
 				case *ast.KeyValueExpr:
-					key, err := scope.Interpret(eT.Key)
+					key, err := s.Interpret(eT.Key)
 					if err != nil {
 						return nil, err
 					}
-					val, err := scope.Interpret(eT.Value)
+					val, err := s.Interpret(eT.Value)
 					if err != nil {
 						return nil, err
 					}
@@ -224,25 +223,25 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		}
 
 	case *ast.BinaryExpr:
-		x, err := scope.Interpret(e.X)
+		x, err := s.Interpret(e.X)
 		if err != nil {
 			return nil, err
 		}
-		y, err := scope.Interpret(e.Y)
+		y, err := s.Interpret(e.Y)
 		if err != nil {
 			return nil, err
 		}
 		return ComputeBinaryOp(x, y, e.Op)
 
 	case *ast.UnaryExpr:
-		x, err := scope.Interpret(e.X)
+		x, err := s.Interpret(e.X)
 		if err != nil {
 			return nil, err
 		}
 		return ComputeUnaryOp(x, e.Op)
 
 	case *ast.ArrayType:
-		typ, err := scope.Interpret(e.Elt)
+		typ, err := s.Interpret(e.Elt)
 		if err != nil {
 			return nil, err
 		}
@@ -250,11 +249,11 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		return arrType, nil
 
 	case *ast.MapType:
-		keyType, err := scope.Interpret(e.Key)
+		keyType, err := s.Interpret(e.Key)
 		if err != nil {
 			return nil, err
 		}
-		valType, err := scope.Interpret(e.Value)
+		valType, err := s.Interpret(e.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -262,7 +261,7 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		return mapType, nil
 
 	case *ast.ChanType:
-		typeI, err := scope.Interpret(e.Value)
+		typeI, err := s.Interpret(e.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -273,11 +272,11 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		return reflect.ChanOf(reflect.BothDir, typ), nil
 
 	case *ast.IndexExpr:
-		X, err := scope.Interpret(e.X)
+		X, err := s.Interpret(e.X)
 		if err != nil {
 			return nil, err
 		}
-		i, err := scope.Interpret(e.Index)
+		i, err := s.Interpret(e.Index)
 		if err != nil {
 			return nil, err
 		}
@@ -301,15 +300,15 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		return xVal.Index(iVal).Interface(), nil
 
 	case *ast.SliceExpr:
-		low, err := scope.Interpret(e.Low)
+		low, err := s.Interpret(e.Low)
 		if err != nil {
 			return nil, err
 		}
-		high, err := scope.Interpret(e.High)
+		high, err := s.Interpret(e.High)
 		if err != nil {
 			return nil, err
 		}
-		X, err := scope.Interpret(e.X)
+		X, err := s.Interpret(e.X)
 		if err != nil {
 			return nil, err
 		}
@@ -331,12 +330,12 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		return xVal.Slice(lowVal, highVal).Interface(), nil
 
 	case *ast.ParenExpr:
-		return scope.Interpret(e.X)
+		return s.Interpret(e.X)
 
 	case *ast.ReturnStmt:
 		results := make([]interface{}, len(e.Results))
 		for i, result := range e.Results {
-			out, err := scope.Interpret(result)
+			out, err := s.Interpret(result)
 			if err != nil {
 				return out, err
 			}
@@ -362,7 +361,7 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		}
 		rhs := make([]interface{}, len(e.Rhs))
 		for i, expr := range e.Rhs {
-			val, err := scope.Interpret(expr)
+			val, err := s.Interpret(expr)
 			if err != nil {
 				return nil, err
 			}
@@ -380,20 +379,20 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 			}
 			for i := 0; i < rhsLen; i++ {
 				variable := lhs[i]
-				v := scope.Get(variable)
+				v := s.Get(variable)
 				if v == nil && !define {
 					return nil, fmt.Errorf("variable %#v is not defined", variable)
 				}
-				scope.Set(variable, rhsV.Index(i).Interface())
+				s.Set(variable, rhsV.Index(i).Interface())
 			}
 		} else {
 			for i, r := range rhs {
 				variable := lhs[i]
-				v := scope.Get(variable)
+				v := s.Get(variable)
 				if v == nil && !define {
 					return nil, fmt.Errorf("variable %#v is not defined", variable)
 				}
-				scope.Set(variable, r)
+				s.Set(variable, r)
 			}
 		}
 
@@ -403,7 +402,7 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		return rhs[0], nil
 
 	case *ast.ForStmt:
-		s := scope.NewChild()
+		s := s.NewChild()
 		s.Interpret(e.Init)
 		for {
 			ok, err := s.Interpret(e.Cond)
@@ -418,7 +417,7 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		}
 		return nil, nil
 	case *ast.RangeStmt:
-		s := scope.NewChild()
+		s := s.NewChild()
 		ranger, err := s.Interpret(e.X)
 		if err != nil {
 			return nil, err
@@ -458,38 +457,38 @@ func (scope *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		}
 		return nil, nil
 	case *ast.ExprStmt:
-		return scope.Interpret(e.X)
+		return s.Interpret(e.X)
 	case *ast.DeclStmt:
-		return scope.Interpret(e.Decl)
+		return s.Interpret(e.Decl)
 	case *ast.GenDecl:
 		for _, spec := range e.Specs {
-			if _, err := scope.Interpret(spec); err != nil {
+			if _, err := s.Interpret(spec); err != nil {
 				return nil, err
 			}
 		}
 		return nil, nil
 	case *ast.ValueSpec:
-		typ, err := scope.Interpret(e.Type)
+		typ, err := s.Interpret(e.Type)
 		if err != nil {
 			return nil, err
 		}
 		zero := reflect.Zero(typ.(reflect.Type)).Interface()
 		for i, name := range e.Names {
 			if len(e.Values) > i {
-				v, err := scope.Interpret(e.Values[i])
+				v, err := s.Interpret(e.Values[i])
 				if err != nil {
 					return nil, err
 				}
-				scope.Set(name.Name, v)
+				s.Set(name.Name, v)
 			} else {
-				scope.Set(name.Name, zero)
+				s.Set(name.Name, zero)
 			}
 		}
 		return nil, nil
 	case *ast.BlockStmt:
 		var outFinal interface{}
 		for _, stmts := range e.List {
-			out, err := scope.Interpret(stmts)
+			out, err := s.Interpret(stmts)
 			if err != nil {
 				return out, err
 			}
@@ -534,9 +533,9 @@ func StringToType(str string) (reflect.Type, error) {
 }
 
 // ValuesToInterfaces converts a slice of []reflect.Value to []interface{}
-func ValuesToInterfaces(vals []reflect.Value) []interface{} {
-	inters := make([]interface{}, len(vals))
-	for i, val := range vals {
+func ValuesToInterfaces(values []reflect.Value) []interface{} {
+	inters := make([]interface{}, len(values))
+	for i, val := range values {
 		inters[i] = val.Interface()
 	}
 	return inters
