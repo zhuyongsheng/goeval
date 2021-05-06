@@ -12,13 +12,35 @@ import (
 )
 
 var (
-	Builtins = map[string]interface{}{
+	builtins = map[string]interface{}{
 		"nil":    nil,
 		"true":   true,
 		"false":  false,
 		"append": Append,
 		"make":   Make,
 		"len":    Len,
+	}
+	builtinTypes = map[string]reflect.Type{
+		"bool":       reflect.TypeOf(true),
+		"byte":       reflect.TypeOf(byte(0)),
+		"rune":       reflect.TypeOf(rune(0)),
+		"string":     reflect.TypeOf(""),
+		"int":        reflect.TypeOf(int(0)),
+		"int8":       reflect.TypeOf(int8(0)),
+		"int16":      reflect.TypeOf(int16(0)),
+		"int32":      reflect.TypeOf(int32(0)),
+		"int64":      reflect.TypeOf(int64(0)),
+		"uint":       reflect.TypeOf(uint(0)),
+		"uint8":      reflect.TypeOf(uint8(0)),
+		"uint16":     reflect.TypeOf(uint16(0)),
+		"uint32":     reflect.TypeOf(uint32(0)),
+		"uint64":     reflect.TypeOf(uint64(0)),
+		"uintptr":    reflect.TypeOf(uintptr(0)),
+		"float32":    reflect.TypeOf(float32(0)),
+		"float64":    reflect.TypeOf(float64(0)),
+		"complex64":  reflect.TypeOf(complex64(0)),
+		"complex128": reflect.TypeOf(complex128(0)),
+		"error":      reflect.TypeOf(errors.New("")),
 	}
 )
 
@@ -108,7 +130,7 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 			return typ, err
 		}
 
-		if obj, exists := Builtins[e.Name]; exists {
+		if obj, exists := builtins[e.Name]; exists {
 			return obj, nil
 		}
 
@@ -512,40 +534,18 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 
 // StringToType returns the reflect.Type corresponding to the type string provided. Ex: StringToType("int")
 func StringToType(str string) (reflect.Type, error) {
-	builtinTypes := map[string]reflect.Type{
-		"bool":       reflect.TypeOf(true),
-		"byte":       reflect.TypeOf(byte(0)),
-		"rune":       reflect.TypeOf(rune(0)),
-		"string":     reflect.TypeOf(""),
-		"int":        reflect.TypeOf(int(0)),
-		"int8":       reflect.TypeOf(int8(0)),
-		"int16":      reflect.TypeOf(int16(0)),
-		"int32":      reflect.TypeOf(int32(0)),
-		"int64":      reflect.TypeOf(int64(0)),
-		"uint":       reflect.TypeOf(uint(0)),
-		"uint8":      reflect.TypeOf(uint8(0)),
-		"uint16":     reflect.TypeOf(uint16(0)),
-		"uint32":     reflect.TypeOf(uint32(0)),
-		"uint64":     reflect.TypeOf(uint64(0)),
-		"uintptr":    reflect.TypeOf(uintptr(0)),
-		"float32":    reflect.TypeOf(float32(0)),
-		"float64":    reflect.TypeOf(float64(0)),
-		"complex64":  reflect.TypeOf(complex64(0)),
-		"complex128": reflect.TypeOf(complex128(0)),
-		"error":      reflect.TypeOf(errors.New("")),
-	}
-	val, present := builtinTypes[str]
+	rtype, present := builtinTypes[str]
 	if !present {
 		return nil, fmt.Errorf("type %#v is not in table", str)
 	}
-	return val, nil
+	return rtype, nil
 }
 
 // ValuesToInterfaces converts a slice of []reflect.Value to []interface{}
 func ValuesToInterfaces(values []reflect.Value) []interface{} {
-	inters := make([]interface{}, len(values))
+	iValues := make([]interface{}, len(values))
 	for i, val := range values {
-		inters[i] = val.Interface()
+		iValues[i] = val.Interface()
 	}
-	return inters
+	return iValues
 }
