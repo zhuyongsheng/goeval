@@ -16,7 +16,7 @@ var opNames = map[token.Token]string{
 	token.OR:      `|`,
 	token.XOR:     `^`,
 	token.SHL:     `<<`,
-	token.SHR:     `>> `,
+	token.SHR:     `>>`,
 	token.AND_NOT: `&^`,
 	token.LAND:    `&&`,
 	token.LOR:     `||`,
