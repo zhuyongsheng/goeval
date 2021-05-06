@@ -434,7 +434,7 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 
 	case *ast.ForStmt:
 		s := s.NewChild()
-		s.Interpret(e.Init)
+		_, _ = s.Interpret(e.Init)
 		for {
 			ok, err := s.Interpret(e.Cond)
 			if err != nil {
@@ -443,8 +443,8 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 			if !ok.(bool) {
 				break
 			}
-			s.Interpret(e.Body)
-			s.Interpret(e.Post)
+			_, _ = s.Interpret(e.Body)
+			_, _ = s.Interpret(e.Post)
 		}
 		return nil, nil
 	case *ast.RangeStmt:
@@ -470,7 +470,7 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 				if len(value) > 0 {
 					s.Set(value, rv.Index(i).Interface())
 				}
-				s.Interpret(e.Body)
+				_, _ = s.Interpret(e.Body)
 			}
 		case reflect.Map:
 			keys := rv.MapKeys()
@@ -481,7 +481,7 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 				if len(value) > 0 {
 					s.Set(value, rv.MapIndex(keyV).Interface())
 				}
-				s.Interpret(e.Body)
+				_, _ = s.Interpret(e.Body)
 			}
 		default:
 			return nil, fmt.Errorf("ranging on %s is unsupported", rv.Type().Kind().String())
