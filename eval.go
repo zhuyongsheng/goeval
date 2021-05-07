@@ -342,7 +342,8 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 
 		if len(results) == 0 {
 			return nil, nil
-		} else if len(results) == 1 {
+		}
+		if len(results) == 1 {
 			return results[0], nil
 		}
 		return results, nil
