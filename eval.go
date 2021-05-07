@@ -526,7 +526,20 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 			outFinal = out
 		}
 		return outFinal, nil
-
+	case *ast.IfStmt:
+		s.Interpret(e.Init)
+		cond, err := s.Interpret(e.Cond)
+		if err != nil {
+			return nil, err
+		}
+		if condition, ok := cond.(bool); ok {
+			if condition {
+				return s.Interpret(e.Body)
+			} else if e.Else != nil {
+				return s.Interpret(e.Else)
+			}
+		}
+		return nil, errors.New("error condition statement")
 	default:
 		return nil, fmt.Errorf("unknown node %#v", e)
 	}
