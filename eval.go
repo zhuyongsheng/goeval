@@ -423,7 +423,15 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 				if v == nil && !define {
 					return nil, fmt.Errorf("variable %#v is not defined", variable)
 				}
-				s.Set(variable, r)
+				if !define && (token.ADD_ASSIGN <= e.Tok && e.Tok <= token.AND_NOT_ASSIGN) {
+					val, err := ComputeBinaryOp(v, r, e.Tok+(token.ADD-token.ADD_ASSIGN))
+					if err != nil {
+						return nil, err
+					}
+					s.Set(variable, val)
+				} else {
+					s.Set(variable, r)
+				}
 			}
 		}
 
@@ -527,7 +535,7 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		}
 		return outFinal, nil
 	case *ast.IfStmt:
-		s.Interpret(e.Init)
+		_, _ = s.Interpret(e.Init)
 		cond, err := s.Interpret(e.Cond)
 		if err != nil {
 			return nil, err
