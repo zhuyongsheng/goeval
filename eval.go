@@ -125,12 +125,11 @@ func (s *Scope) Eval(str string) (interface{}, error) {
 func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 	switch e := expr.(type) {
 	case *ast.Ident: // An Ident node represents an identifier.
-		typ, ok := builtinTypes[e.Name]
-		if ok {
+		if typ, ok := builtinTypes[e.Name];ok {
 			return typ, nil
 		}
 
-		if obj, exists := builtins[e.Name]; exists {
+		if obj, ok := builtins[e.Name]; ok {
 			return obj, nil
 		}
 
