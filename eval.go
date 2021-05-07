@@ -24,8 +24,8 @@ var (
 		"bool":       reflect.TypeOf(true),
 		"byte":       reflect.TypeOf(byte(0)),
 		"rune":       reflect.TypeOf(rune(0)),
-		"string":     reflect.TypeOf(""),
-		"int":        reflect.TypeOf(int(0)),
+		"string":     reflect.TypeOf(string(0)),
+		"int":        reflect.TypeOf(0),
 		"int8":       reflect.TypeOf(int8(0)),
 		"int16":      reflect.TypeOf(int16(0)),
 		"int32":      reflect.TypeOf(int32(0)),
@@ -125,9 +125,9 @@ func (s *Scope) Eval(str string) (interface{}, error) {
 func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 	switch e := expr.(type) {
 	case *ast.Ident: // An Ident node represents an identifier.
-		typ, err := StringToType(e.Name)
-		if err == nil {
-			return typ, err
+		typ, ok := builtinTypes[e.Name]
+		if ok {
+			return typ, nil
 		}
 
 		if obj, exists := builtins[e.Name]; exists {
@@ -381,65 +381,52 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		return results, nil
 
 	case *ast.AssignStmt:
-		define := e.Tok == token.DEFINE
-		lhs := make([]string, len(e.Lhs))
-		for i, id := range e.Lhs {
-			lhsIdent, isIdent := id.(*ast.Ident)
-			if !isIdent {
-				return nil, fmt.Errorf("%#v assignment is not ident", id)
-			}
-			lhs[i] = lhsIdent.Name
+		if len(e.Lhs) != len(e.Rhs) {
+			return nil, fmt.Errorf("assignment count mismatch: %d != %d", len(e.Lhs), len(e.Rhs))
 		}
-		rhs := make([]interface{}, len(e.Rhs))
-		for i, expr := range e.Rhs {
-			val, err := s.Interpret(expr)
+		for i, lh := range e.Lhs {
+			rh, err := s.Interpret(e.Rhs[i])
 			if err != nil {
 				return nil, err
 			}
-			rhs[i] = val
-		}
-
-		if len(rhs) != 1 && len(rhs) != len(lhs) {
-			return nil, fmt.Errorf("assignment count mismatch: %d = %d", len(lhs), len(rhs))
-		}
-		if len(rhs) == 1 && len(lhs) > 1 && reflect.TypeOf(rhs[0]).Kind() == reflect.Slice {
-			rhsV := reflect.ValueOf(rhs[0])
-			rhsLen := rhsV.Len()
-			if rhsLen != len(lhs) {
-				return nil, fmt.Errorf("assignment count mismatch: %d = %d", len(lhs), rhsLen)
-			}
-			for i := 0; i < rhsLen; i++ {
-				variable := lhs[i]
-				v := s.Get(variable)
-				if v == nil && !define {
+			switch variable := lh.(type) {
+			case *ast.Ident:
+				variableName := variable.Name
+				v := s.Get(variableName)
+				if v == nil && (e.Tok != token.DEFINE) {
 					return nil, fmt.Errorf("variable %#v is not defined", variable)
 				}
-				s.Set(variable, rhsV.Index(i).Interface())
-			}
-		} else {
-			for i, r := range rhs {
-				variable := lhs[i]
-				v := s.Get(variable)
-				if v == nil && !define {
-					return nil, fmt.Errorf("variable %#v is not defined", variable)
-				}
-				if !define && (token.ADD_ASSIGN <= e.Tok && e.Tok <= token.AND_NOT_ASSIGN) {
-					val, err := ComputeBinaryOp(v, r, e.Tok+(token.ADD-token.ADD_ASSIGN))
+				if token.ADD_ASSIGN <= e.Tok && e.Tok <= token.AND_NOT_ASSIGN {
+					rh, err = ComputeBinaryOp(v, rh, e.Tok+(token.ADD-token.ADD_ASSIGN))
 					if err != nil {
 						return nil, err
 					}
-					s.Set(variable, val)
-				} else {
-					s.Set(variable, r)
 				}
+				s.Set(variableName, rh)
+			case *ast.IndexExpr:
+				X, err := s.Interpret(variable.X)
+				xVal := reflect.ValueOf(X)
+				index, err := s.Interpret(variable.Index)
+				if err != nil {
+					return nil, err
+				}
+				rhV := reflect.ValueOf(rh)
+				switch reflect.TypeOf(X).Kind() {
+				case reflect.Map:
+					xVal.SetMapIndex(reflect.ValueOf(index), rhV)
+				case reflect.Slice:
+					xVal.Index(index.(int)).Set(rhV)
+				case reflect.Struct:
+					xVal.FieldByName(index.(string)).Set(rhV)
+				default:
+					return nil, fmt.Errorf("unknown type %v", reflect.TypeOf(X).Kind())
+				}
+			default:
+				return nil, fmt.Errorf("unknown assignment type %#v", variable)
+
 			}
 		}
-
-		if len(rhs) > 1 {
-			return rhs, nil
-		}
-		return rhs[0], nil
-
+		return nil, nil
 	case *ast.ForStmt:
 		s := s.NewChild()
 		_, _ = s.Interpret(e.Init)
@@ -551,15 +538,6 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("unknown node %#v", e)
 	}
-}
-
-// StringToType returns the reflect.Type corresponding to the type string provided. Ex: StringToType("int")
-func StringToType(str string) (reflect.Type, error) {
-	rtype, present := builtinTypes[str]
-	if !present {
-		return nil, fmt.Errorf("type %#v is not in table", str)
-	}
-	return rtype, nil
 }
 
 // ValuesToInterfaces converts a slice of []reflect.Value to []interface{}
