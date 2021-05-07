@@ -154,7 +154,8 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		values := ValuesToInterfaces(rf.Call(args))
 		if len(values) == 0 {
 			return nil, nil
-		} else if len(values) == 1 {
+		}
+		if len(values) == 1 {
 			return values[0], nil
 		}
 		err, _ = values[1].(error)
@@ -496,13 +497,14 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		if condition, ok := cond.(bool); ok {
 			if condition {
 				return s.Interpret(e.Body)
-			} else if e.Else != nil {
+			}
+			if e.Else != nil {
 				return s.Interpret(e.Else)
 			}
 		}
 		return nil, errors.New("error condition statement")
 	default:
-		return nil, fmt.Errorf("unknown node %#v", e)
+		return nil, fmt.Errorf("unknown EXPR %#v", e)
 	}
 }
 
