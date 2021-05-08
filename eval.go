@@ -292,7 +292,7 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 			return nil, fmt.Errorf("index has to be an int not %T", i)
 		}
 		if iVal >= xVal.Len() || iVal < 0 {
-			return nil, errors.New("slice index out of range")
+			return nil, errors.New("slice index result of range")
 		}
 		return xVal.Index(iVal).Interface(), nil
 
@@ -322,7 +322,7 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 			return nil, fmt.Errorf("slice: indexes have to be an ints not %T and %T", low, high)
 		}
 		if lowVal < 0 || highVal >= xVal.Len() {
-			return nil, errors.New("slice: index out of bounds")
+			return nil, errors.New("slice: index result of bounds")
 		}
 		return xVal.Slice(lowVal, highVal).Interface(), nil
 
@@ -479,13 +479,15 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		}
 		return nil, nil
 	case *ast.BlockStmt:
+		var result interface{}
+		var err error
 		for _, stmt := range e.List {
-			out, err := s.Interpret(stmt)
+			result, err = s.Interpret(stmt)
 			if err != nil {
-				return out, err
+				return result, err
 			}
 		}
-		return nil, nil
+		return result, nil
 	case *ast.IfStmt:
 		_, _ = s.Interpret(e.Init)
 		cond, err := s.Interpret(e.Cond)
