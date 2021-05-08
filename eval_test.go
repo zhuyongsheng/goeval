@@ -53,6 +53,17 @@ func TestFor(t *testing.T) {
 	print(count)`))
 }
 
+func TestIF(t *testing.T) {
+	s := NewScope()
+	s.Set("print", fmt.Println)
+	t.Log(s.Eval(`a := 3
+	if a > 0 {
+		return "positive"
+	} else {
+		return "negative"
+	}`))
+}
+
 func TestEStruct(t *testing.T) {
 	s := NewScope()
 	s.Set("print", fmt.Println)
