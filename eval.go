@@ -92,29 +92,29 @@ func (s *Scope) Eval(str string) (interface{}, error) {
 func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 	switch e := expr.(type) {
 	case *ast.Ident: // An Ident node represents an identifier.
-		if typ, ok := builtinTypes[e.Name];ok {
+		if typ, ok := builtinTypes[e.Name]; ok {
 			return typ, nil
 		}
 
-		if obj, ok := builtins[e.Name]; ok {
-			return obj, nil
+		if v, ok := builtins[e.Name]; ok {
+			return v, nil
 		}
 
-		if obj := s.Get(e.Name); obj != nil {
-			return obj, nil
+		if v := s.Get(e.Name); v != nil {
+			return v, nil
 		}
 		return nil, fmt.Errorf("can't find EXPR %s", e.Name)
 
 	case *ast.SelectorExpr: // A SelectorExpr node represents an expression followed by a selector.
-		X, err := s.Interpret(e.X)
+		x, err := s.Interpret(e.X)
 		if err != nil {
 			return nil, err
 		}
 		sel := e.Sel
 
-		rVal := reflect.ValueOf(X)
+		rVal := reflect.ValueOf(x)
 		if rVal.Kind() != reflect.Struct && rVal.Kind() != reflect.Ptr {
-			return nil, fmt.Errorf("%#v is not a struct and thus has no field %#v", X, sel.Name)
+			return nil, fmt.Errorf("%#v is not a struct and thus has no field %#v", x, sel.Name)
 		}
 
 		if method := rVal.MethodByName(sel.Name); method.IsValid() {
@@ -215,7 +215,6 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 				}
 			}
 			return nMap.Interface(), nil
-
 		default:
 			return nil, fmt.Errorf("unknown composite literal %#v", t)
 		}
@@ -480,15 +479,13 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		}
 		return nil, nil
 	case *ast.BlockStmt:
-		var outFinal interface{}
-		for _, stmts := range e.List {
-			out, err := s.Interpret(stmts)
+		for _, stmt := range e.List {
+			out, err := s.Interpret(stmt)
 			if err != nil {
 				return out, err
 			}
-			outFinal = out
 		}
-		return outFinal, nil
+		return nil, nil
 	case *ast.IfStmt:
 		_, _ = s.Interpret(e.Init)
 		cond, err := s.Interpret(e.Cond)
@@ -504,6 +501,9 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 			}
 		}
 		return nil, errors.New("error condition statement")
+	case *ast.StructType:
+		//TODO: struct support
+		return nil, nil
 	default:
 		return nil, fmt.Errorf("unknown EXPR %#v", e)
 	}
