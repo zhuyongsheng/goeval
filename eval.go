@@ -542,6 +542,8 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 			}
 		}
 		return reflect.StructOf(structFields), nil
+	case *ast.TypeSpec:
+		return nil, errors.New("*ast.TypeSpec not supported yet")
 	default:
 		return nil, fmt.Errorf("unknown EXPR %#v", e)
 	}

@@ -80,6 +80,21 @@ func TestEStruct(t *testing.T) {
 
 }
 
+func TestDStruct(t *testing.T) {
+
+	s := NewScope()
+	s.Set("print", fmt.Println)
+	t.Log(s.Eval(`type  Animal struct{
+		Name string
+		Age int
+	}
+	cat := &Animal{
+		Name: "Tom",
+		Age:  3,
+	}
+	print(cat)`))
+}
+
 func TestMakeMap(t *testing.T) {
 
 	s := NewScope()
