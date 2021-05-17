@@ -505,7 +505,7 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		return nil, errors.New("error condition statement")
 	case *ast.StructType:
 		//TODO: struct support
-		return nil, nil
+		return nil, errors.New("struct type not supported yet")
 	default:
 		return nil, fmt.Errorf("unknown EXPR %#v", e)
 	}
