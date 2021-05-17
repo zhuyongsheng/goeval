@@ -41,18 +41,18 @@ var (
 
 // Append is a runtime replacement for the append function
 func Append(arr interface{}, elements ...interface{}) (interface{}, error) {
-	arrVal := reflect.ValueOf(arr)
-	for _, elem := range elements {
+	v := reflect.ValueOf(arr)
+	for _, e := range elements {
 		switch reflect.TypeOf(arr) {
-		case reflect.SliceOf(reflect.TypeOf(elem)):
-			arrVal = reflect.Append(arrVal, reflect.ValueOf(elem))
-		case reflect.TypeOf(elem):
-			arrVal = reflect.AppendSlice(arrVal, reflect.ValueOf(elem))
+		case reflect.SliceOf(reflect.TypeOf(e)):
+			v = reflect.Append(v, reflect.ValueOf(e))
+		case reflect.TypeOf(e):
+			v = reflect.AppendSlice(v, reflect.ValueOf(e))
 		default:
-			return arrVal.Interface(), fmt.Errorf("%T cannot append to %T", elem, arr)
+			return v.Interface(), fmt.Errorf("%T cannot append to %T", e, arr)
 		}
 	}
-	return arrVal.Interface(), nil
+	return v.Interface(), nil
 }
 
 // Make is a runtime replacement for the make function
@@ -106,8 +106,8 @@ func Make(t interface{}, args ...interface{}) (v interface{}, err error) {
 }
 
 // Len is a runtime replacement for the len function
-func Len(t interface{}) (interface{}, error) {
-	return reflect.ValueOf(t).Len(), nil
+func Len(v interface{}) (interface{}, error) {
+	return reflect.ValueOf(v).Len(), nil
 }
 
 func getInteger(arg interface{}) (int, error) {
