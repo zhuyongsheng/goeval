@@ -3,6 +3,7 @@ package goeval
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -104,6 +105,14 @@ func TestMakeMap(t *testing.T) {
 	println(s.GetJsonString("a"))
 }
 
+func TestImport(t *testing.T) {
+
+	s := NewScope()
+	s.Set("ToUpper", strings.ToUpper)
+	t.Log(s.Eval(`a := ToUpper("abc")`))
+	println(s.GetJsonString("a"))
+}
+
 func TestConcurrent(t *testing.T) {
 	s := NewScope()
 	for i := 0; i < 100; i++ {
@@ -148,4 +157,13 @@ func TestStringToType(t *testing.T) {
 	var a interface{}
 	a = map[string]int{}
 	fmt.Printf("%v", reflect.TypeOf(a).Kind())
+}
+
+func TestAppend(t *testing.T) {
+	s := NewScope()
+	t.Log(s.Eval(`a := []int{1,2,3}
+	a = append(a, 6)
+	b := []int{4,5}
+	a = append(a, b...)`))
+	fmt.Println(s.GetJsonString("a"))
 }

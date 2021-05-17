@@ -39,18 +39,20 @@ var (
 	}
 )
 
-
 // Append is a runtime replacement for the append function
 func Append(arr interface{}, elements ...interface{}) (interface{}, error) {
 	arrVal := reflect.ValueOf(arr)
-	valArr := make([]reflect.Value, len(elements))
-	for i, elem := range elements {
-		if reflect.TypeOf(arr) != reflect.SliceOf(reflect.TypeOf(elem)) {
-			return nil, fmt.Errorf("%T cannot append to %T", elem, arr)
+	for _, elem := range elements {
+		switch reflect.TypeOf(arr) {
+		case reflect.SliceOf(reflect.TypeOf(elem)):
+			arrVal = reflect.Append(arrVal, reflect.ValueOf(elem))
+		case reflect.TypeOf(elem):
+			arrVal = reflect.AppendSlice(arrVal, reflect.ValueOf(elem))
+		default:
+			return arrVal.Interface(), fmt.Errorf("%T cannot append to %T", elem, arr)
 		}
-		valArr[i] = reflect.ValueOf(elem)
 	}
-	return reflect.Append(arrVal, valArr...).Interface(), nil
+	return arrVal.Interface(), nil
 }
 
 // Make is a runtime replacement for the make function
