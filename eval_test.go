@@ -75,22 +75,8 @@ func TestEStruct(t *testing.T) {
 		Name: "tom",
 		Age: 1,
 	}
-	print(cat)`))
-	cat := struct {
-		Name string
-		Age  int
-	}{
-		Name: "tom",
-		Age:  1,
-	}
-	typ := reflect.TypeOf(cat)
-	fmt.Printf("%v\n", typ)
-	v := reflect.New(typ).Interface()
-	fmt.Printf("%#v\n", v)
-	vV := reflect.ValueOf(v).Elem()
-	vV.FieldByName("Name").Set(reflect.ValueOf("tom"))
-	vV.FieldByName("Age").Set(reflect.ValueOf(3))
-	fmt.Printf("%#v\n", v)
+	print(cat.Name)`))
+	fmt.Printf("%#v", s.Get("cat"))
 
 }
 
@@ -137,7 +123,7 @@ func TestScopePreset(t *testing.T) {
 	t.Log(s.GetJsonString(`mn`))
 	t.Log(s.GetJsonString(`mx`))
 	t.Log(s.GetJsonString(`bb`))
-	t.Log(s.Eval("mn[1]"))
+	t.Log(s.Eval("mn[1] + a"))
 }
 
 func BenchmarkEvalStringContact(b *testing.B) {

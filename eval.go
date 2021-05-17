@@ -103,6 +103,10 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		if v := s.Get(e.Name); v != nil {
 			return v, nil
 		}
+
+		if e.Obj == nil || e.Obj.Kind != ast.Bad {
+			return e.Name, nil
+		}
 		return nil, fmt.Errorf("can't find EXPR %s", e.Name)
 
 	case *ast.SelectorExpr: // A SelectorExpr node represents an expression followed by a selector.
@@ -215,6 +219,27 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 				}
 			}
 			return nMap.Interface(), nil
+		case *ast.StructType:
+			nStruct := reflect.New(typ.(reflect.Type)).Interface()
+			rv := reflect.ValueOf(nStruct).Elem()
+
+			for _, elem := range e.Elts {
+				switch eT := elem.(type) {
+				case *ast.KeyValueExpr:
+					key, err := s.Interpret(eT.Key)
+					if err != nil {
+						return nil, err
+					}
+					val, err := s.Interpret(eT.Value)
+					if err != nil {
+						return nil, err
+					}
+					rv.FieldByName(key.(string)).Set(reflect.ValueOf(val))
+				default:
+					return nStruct, fmt.Errorf("unknown expr %#v in struct elts", elem)
+				}
+			}
+			return nStruct, nil
 		default:
 			return nil, fmt.Errorf("unknown composite literal %#v", t)
 		}
@@ -504,8 +529,19 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		}
 		return nil, errors.New("error condition statement")
 	case *ast.StructType:
-		//TODO: struct support
-		return nil, errors.New("struct type not supported yet")
+		structFields := make([]reflect.StructField, len(e.Fields.List))
+		for i, field := range e.Fields.List {
+			typ, err := s.Interpret(field.Type)
+			if err != nil {
+				return nil, err
+			}
+			structFields[i] = reflect.StructField{
+				Name:      field.Names[0].Name,
+				Type:      typ.(reflect.Type),
+				Anonymous: false,
+			}
+		}
+		return reflect.StructOf(structFields), nil
 	default:
 		return nil, fmt.Errorf("unknown EXPR %#v", e)
 	}
