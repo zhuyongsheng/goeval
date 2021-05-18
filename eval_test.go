@@ -3,7 +3,6 @@ package goeval
 import (
 	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 )
@@ -106,12 +105,15 @@ func TestMakeMap(t *testing.T) {
 	println(s.GetJsonString("a"))
 }
 
+// todo: try to handle import
 func TestImport(t *testing.T) {
 
 	s := NewScope()
-	s.Set("ToUpper", strings.ToUpper)
-	t.Log(s.Eval(`a := ToUpper("abc")`))
+	//s.Set("ToUpper", strings.ToUpper)
+	t.Log(s.Eval(`import "strings"
+	a := strings.ToUpper("abc")`))
 	println(s.GetJsonString("a"))
+
 }
 
 func TestConcurrent(t *testing.T) {
