@@ -83,7 +83,7 @@ func TestEStruct(t *testing.T) {
 func TestDStruct(t *testing.T) {
 
 	s := NewScope()
-	s.Set("print", fmt.Println)
+	s.Set("print", fmt.Printf)
 	t.Log(s.Eval(`type  Animal struct{
 		Name string
 		Age int
@@ -92,7 +92,7 @@ func TestDStruct(t *testing.T) {
 		Name: "Tom",
 		Age:  3,
 	}
-	print(cat)`))
+	print("%#v\n", cat)`))
 }
 
 func TestMakeMap(t *testing.T) {

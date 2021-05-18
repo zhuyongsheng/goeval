@@ -13,14 +13,16 @@ import (
 
 // variable scope, recursive definition
 type Scope struct {
-	Vars   map[string]interface{} // all variables in current scope
-	Parent *Scope
+	Vars       map[string]interface{}  // all variables in current scope
+	LocalTypes map[string]reflect.Type //for type declare
+	Parent     *Scope
 }
 
 // create a new variable scope
 func NewScope() *Scope {
 	s := &Scope{
-		Vars: map[string]interface{}{},
+		Vars:       map[string]interface{}{},
+		LocalTypes: map[string]reflect.Type{},
 	}
 	return s
 }
@@ -95,17 +97,24 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		if typ, ok := builtinTypes[e.Name]; ok {
 			return typ, nil
 		}
-
 		if v, ok := builtins[e.Name]; ok {
 			return v, nil
 		}
-
 		if v := s.Get(e.Name); v != nil {
 			return v, nil
 		}
-
-		if e.Obj == nil || e.Obj.Kind != ast.Bad {
+		if e.Obj == nil {
 			return e.Name, nil
+		}
+		switch e.Obj.Kind {
+		case ast.Bad:
+			return e.Name, nil
+		case ast.Typ:
+			if typ, ok := s.LocalTypes[e.Name]; ok {
+				return typ, nil
+			} else {
+				return e.Name, nil
+			}
 		}
 		return nil, fmt.Errorf("can't find EXPR %s", e.Name)
 
@@ -240,6 +249,26 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 				}
 			}
 			return nStruct, nil
+		case *ast.Ident:
+			nStruct := reflect.New(typ.(reflect.Type))
+			rv := reflect.ValueOf(nStruct.Interface()).Elem()
+			for _, elem := range e.Elts {
+				switch eT := elem.(type) {
+				case *ast.KeyValueExpr:
+					key, err := s.Interpret(eT.Key)
+					if err != nil {
+						return nil, err
+					}
+					val, err := s.Interpret(eT.Value)
+					if err != nil {
+						return nil, err
+					}
+					rv.FieldByName(key.(string)).Set(reflect.ValueOf(val))
+				default:
+					return nStruct.Elem(), fmt.Errorf("unknown expr %#v in struct elts", elem)
+				}
+			}
+			return nStruct.Elem(), nil
 		default:
 			return nil, fmt.Errorf("unknown composite literal %#v", t)
 		}
@@ -543,7 +572,16 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		}
 		return reflect.StructOf(structFields), nil
 	case *ast.TypeSpec:
-		return nil, errors.New("*ast.TypeSpec not supported yet")
+		name, err := s.Interpret(e.Name)
+		if err != nil {
+			return nil, err
+		}
+		typ, err := s.Interpret(e.Type)
+		if err != nil {
+			return nil, err
+		}
+		s.LocalTypes[name.(string)] = typ.(reflect.Type)
+		return typ.(reflect.Type), nil
 	default:
 		return nil, fmt.Errorf("unknown EXPR %#v", e)
 	}

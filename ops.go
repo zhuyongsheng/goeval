@@ -736,6 +736,11 @@ func ComputeUnaryOp(xI interface{}, op token.Token) (interface{}, error) {
 		case token.SUB:
 			return -x, nil
 		}
+	case reflect.Value:
+		switch op {
+		case token.AND:
+			return xI.(reflect.Value).Addr().Interface(), nil
+		}
 	}
 	return nil, fmt.Errorf("unknown unary operation %#v on %#v", getOpName(op), xI)
 }
