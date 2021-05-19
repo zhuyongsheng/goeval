@@ -30,8 +30,8 @@ var opNames = map[token.Token]string{
 	token.GEQ:     `>=`,
 }
 
-// ComputeBinaryOp executes the corresponding binary operation (+, -, etc) on two interfaces.
-func ComputeBinaryOp(xI, yI interface{}, op token.Token) (interface{}, error) {
+// binaryOp executes the corresponding binary operation (+, -, etc) on two interfaces.
+func binaryOp(xI, yI interface{}, op token.Token) (interface{}, error) {
 	typeX := reflect.TypeOf(xI)
 	typeY := reflect.TypeOf(yI)
 	if typeX == typeY {
@@ -607,8 +607,8 @@ func ComputeBinaryOp(xI, yI interface{}, op token.Token) (interface{}, error) {
 	return nil, fmt.Errorf("unknown operation %#v between %#v and %#v", getOpName(op), xI, yI)
 }
 
-// ComputeUnaryOp computes the corresponding unary (+x, -x) operation on an interface.
-func ComputeUnaryOp(xI interface{}, op token.Token) (interface{}, error) {
+// unaryOp computes the corresponding unary (+x, -x) operation on an interface.
+func unaryOp(xI interface{}, op token.Token) (interface{}, error) {
 	switch xI.(type) {
 	case bool:
 		x := xI.(bool)

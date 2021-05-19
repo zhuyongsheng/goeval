@@ -15,6 +15,10 @@ func Current() int64 {
 	return time.Now().Unix()
 }
 
+func TestCalculate(t *testing.T) {
+	s := NewScope()
+	t.Log(s.Eval(`"1"+"2"`))
+}
 func TestPresetFunc(t *testing.T) {
 	s := NewScope()
 	s.Set("add", Add)
@@ -95,6 +99,18 @@ func TestDStruct(t *testing.T) {
 	print("%#v", cat)`))
 }
 
+func TestNType(t *testing.T) {
+
+	s := NewScope()
+	s.Set("print", fmt.Printf)
+	t.Log(s.Eval(`type Animal 
+	var cat Animal = 1
+	print("%#v", cat)`))
+	type Animal int
+	var cat Animal = 1
+	fmt.Println(cat)
+}
+
 func TestMakeMap(t *testing.T) {
 
 	s := NewScope()
@@ -141,7 +157,7 @@ func TestScopePreset(t *testing.T) {
 	t.Log(s.GetJsonString(`mn`))
 	t.Log(s.GetJsonString(`mx`))
 	t.Log(s.GetJsonString(`bb`))
-	t.Log(s.Eval("mn[1] + a"))
+	t.Log(s.Eval("mn[1]"))
 }
 
 func BenchmarkEvalStringContact(b *testing.B) {
