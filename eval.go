@@ -93,6 +93,7 @@ func (s *Scope) Eval(str string) (interface{}, error) {
 // Interpret interprets an ast.Node and returns the value.
 func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 	switch e := expr.(type) {
+	//todo: make a clean ident handler
 	case *ast.Ident: // An Ident node represents an identifier.
 		if typ, ok := builtinTypes[e.Name]; ok {
 			return typ, nil
