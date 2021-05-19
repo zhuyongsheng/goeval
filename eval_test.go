@@ -22,7 +22,8 @@ func TestPresetFunc(t *testing.T) {
 	c := s.NewChild()
 	d := s.NewChild()
 	c.Set("age", 3)
-	t.Log(c.Eval(`add(1,2)`))
+	t.Log(c.Eval(`add(1,age)`))
+	t.Log(c.GetJsonString("age"))
 	t.Log(d.GetJsonString("age"))
 	t.Log(d.Eval("current()"))
 }
@@ -91,7 +92,7 @@ func TestDStruct(t *testing.T) {
 		Name: "Tom",
 		Age:  3,
 	}
-	print("%#v\n", cat)`))
+	print("%#v", cat)`))
 }
 
 func TestMakeMap(t *testing.T) {

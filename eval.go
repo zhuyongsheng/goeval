@@ -93,28 +93,31 @@ func (s *Scope) Eval(str string) (interface{}, error) {
 // Interpret interprets an ast.Node and returns the value.
 func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 	switch e := expr.(type) {
-	//todo: make a clean ident handler
 	case *ast.Ident: // An Ident node represents an identifier.
-		if typ, ok := builtinTypes[e.Name]; ok {
-			return typ, nil
-		}
-		if v, ok := builtins[e.Name]; ok {
-			return v, nil
-		}
-		if v := s.Get(e.Name); v != nil {
-			return v, nil
-		}
 		if e.Obj == nil {
 			return e.Name, nil
 		}
 		switch e.Obj.Kind {
 		case ast.Bad:
+			if v, ok := builtinTypes[e.Name]; ok {
+				return v, nil
+			}
+			if v, ok := builtins[e.Name]; ok {
+				return v, nil
+			}
+			if v := s.Get(e.Name); v != nil {
+				return v, nil
+			}
 			return e.Name, nil
 		case ast.Typ:
 			if typ, ok := s.LocalTypes[e.Name]; ok {
 				return typ, nil
 			} else {
-				return e.Name, nil
+				return nil, fmt.Errorf("type %s not found", e.Name)
+			}
+		case ast.Var:
+			if v := s.Get(e.Name); v != nil {
+				return v, nil
 			}
 		}
 		return nil, fmt.Errorf("can't find EXPR %s", e.Name)
@@ -573,15 +576,11 @@ func (s *Scope) Interpret(expr ast.Node) (interface{}, error) {
 		}
 		return reflect.StructOf(structFields), nil
 	case *ast.TypeSpec:
-		name, err := s.Interpret(e.Name)
-		if err != nil {
-			return nil, err
-		}
 		typ, err := s.Interpret(e.Type)
 		if err != nil {
 			return nil, err
 		}
-		s.LocalTypes[name.(string)] = typ.(reflect.Type)
+		s.LocalTypes[e.Name.Name] = typ.(reflect.Type)
 		return typ.(reflect.Type), nil
 	default:
 		return nil, fmt.Errorf("unknown EXPR %#v", e)
