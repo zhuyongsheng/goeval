@@ -2,6 +2,9 @@ package goeval
 
 import (
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"reflect"
 	"testing"
 	"time"
@@ -38,7 +41,7 @@ func BenchmarkEval(b *testing.B) {
 	s.Set("current", Current)
 
 	for i := 0; i < b.N; i++ {
-		s.Eval("current()")
+		_, _ = s.Eval("current()")
 	}
 }
 
@@ -66,7 +69,8 @@ func TestIF(t *testing.T) {
 		return "positive"
 	} else {
 		return "negative"
-	}`))
+	}
+	print(a)`))
 }
 
 func TestEStruct(t *testing.T) {
@@ -186,4 +190,21 @@ func TestAppend(t *testing.T) {
 	b := []int{4,5}
 	a = append(a, b...)`))
 	fmt.Println(s.GetJsonString("a"))
+}
+
+func TestAstPrint(t *testing.T) {
+	fSet := token.NewFileSet() // positions are relative to fSet
+	f, err := parser.ParseFile(fSet, "", `package main
+	import "strings"
+	import "fmt"
+
+	func main() {
+		fmt.Println(strings.replace("hello world?","?", "!"))
+	}`, 0)
+	if err != nil {
+		panic(err)
+	}
+	//*ast.ImportSpec
+	// Print the AST.
+	_ = ast.Print(fSet, f)
 }

@@ -79,24 +79,12 @@ func (s *Scope) NewChild() *Scope {
 	return child
 }
 
-func astPrint(src string) {
-	fSet := token.NewFileSet() // positions are relative to fset
-	f, err := parser.ParseFile(fSet, "", `package main
-	func main() {`+src+`}`, 0)
-	if err != nil {
-		panic(err)
-	}
-	// Print the AST.
-	_ = ast.Print(fSet, f)
-}
-
 // Eval evaluates a string
 func (s *Scope) Eval(src string) (interface{}, error) {
 	expr, err := parser.ParseExpr("func(){" + src + "}()")
 	if err != nil {
 		return nil, err
 	}
-	//astPrint(src)
 	return s.interpret(expr.(*ast.CallExpr).Fun.(*ast.FuncLit).Body)
 }
 
@@ -133,7 +121,7 @@ func (s *Scope) interpret(body ast.Node) (interface{}, error) {
 			case token.CHAR:
 				return (rune)(expr.Value[1]), nil
 			case token.STRING:
-				return expr.Value[1 : len(expr.Value)-1], nil
+				return strconv.Unquote(expr.Value)
 			default:
 				return nil, fmt.Errorf("goeval: unknown BasicLit %#v", expr)
 			}
