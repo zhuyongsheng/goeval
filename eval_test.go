@@ -22,6 +22,16 @@ func TestCalculate(t *testing.T) {
 	s := NewScope()
 	t.Log(s.Eval(`"1"+"2"`))
 }
+
+func TestAssemble(t *testing.T) {
+	s := NewScope()
+	s.Set("Add", Add)
+	s.Set("x", 5)
+	s.Set("d", map[string]interface{}{"z": "mm"})
+	t.Log(s.Assemble(`{"a": Add(1,2), "b":x-1, "c": d["z"]}`))
+
+}
+
 func TestPresetFunc(t *testing.T) {
 	s := NewScope()
 	s.Set("add", Add)
@@ -115,11 +125,18 @@ func TestNType(t *testing.T) {
 	fmt.Println(cat)
 }
 
+func TestMap(t *testing.T) {
+	s := NewScope()
+	s.Set("print", fmt.Println)
+	t.Log(s.Eval(`a := map[string]interface{}{"a":1}`))
+	println(s.GetJsonString("a"))
+}
+
 func TestMakeMap(t *testing.T) {
 
 	s := NewScope()
 	s.Set("print", fmt.Println)
-	t.Log(s.Eval(`a := make(map[string]int)
+	t.Log(s.Eval(`a := make(map[string]interface{})
 	a["tom"] = 3
 	a["jerry"] = 5
 	print(a)`))
@@ -199,12 +216,35 @@ func TestAstPrint(t *testing.T) {
 	import "fmt"
 
 	func main() {
-		fmt.Println(strings.replace("hello world?","?", "!"))
+		a := map[string]interface{}{"a":1}
 	}`, 0)
 	if err != nil {
 		panic(err)
 	}
-	//*ast.ImportSpec
-	// Print the AST.
+	//Print the AST.
 	_ = ast.Print(fSet, f)
+}
+
+func TestMakeMapType(t *testing.T) {
+	m := map[string]interface{}{"a": 1}
+	//v := reflect.MakeMap()
+	fmt.Printf("%T\n", m)
+	fmt.Printf("%v\n", reflect.TypeOf(m))
+}
+
+func TestInterface(t *testing.T) {
+	a := map[string]interface{}{}
+	mapTyp := reflect.TypeOf(a)
+	fmt.Printf("%v\n", mapTyp.Key())
+	fmt.Printf("%#v\n", mapTyp.Elem())
+}
+
+func TestInterfaceSlice(t *testing.T) {
+
+	s := NewScope()
+	t.Log(s.Eval(`a := []interface{}{1,2,3}
+	a = append(a, 6)
+	b := []interface{}{4,5}
+	a = append(a, b...)`))
+	fmt.Println(s.GetJsonString("a"))
 }

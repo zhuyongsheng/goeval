@@ -389,6 +389,10 @@ func (s *Scope) interpret(body ast.Node) (interface{}, error) {
 				return nil, err
 			}
 			return unaryOp(x, expr.Op)
+		case *ast.InterfaceType:
+			// todo: cover the ugly implement
+			typ := reflect.TypeOf([]interface{}{}).Elem()
+			return typ, nil
 		default:
 			return nil, fmt.Errorf("goeval: unknown EXPR %#v", expr)
 		}
@@ -581,4 +585,16 @@ func interfaced(values []reflect.Value) []interface{} {
 		iValues[i] = val.Interface()
 	}
 	return iValues
+}
+
+func (s *Scope) Assemble(src string) (string, error) {
+	expr, err := parser.ParseExpr("func(){ inner_map := map[string]interface{}" + src + "}()")
+	if err != nil {
+		return "", err
+	}
+	_, err = s.interpret(expr.(*ast.CallExpr).Fun.(*ast.FuncLit).Body)
+	if err != nil {
+		return "", err
+	}
+	return s.GetJsonString("inner_map"), nil
 }

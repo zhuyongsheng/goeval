@@ -44,7 +44,7 @@ func Append(arr interface{}, elements ...interface{}) (interface{}, error) {
 	v := reflect.ValueOf(arr)
 	for _, e := range elements {
 		switch reflect.TypeOf(arr) {
-		case reflect.SliceOf(reflect.TypeOf(e)):
+		case reflect.SliceOf(reflect.TypeOf(e)), reflect.TypeOf([]interface{}{}):
 			v = reflect.Append(v, reflect.ValueOf(e))
 		case reflect.TypeOf(e):
 			v = reflect.AppendSlice(v, reflect.ValueOf(e))
